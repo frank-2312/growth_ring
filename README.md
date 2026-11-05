@@ -25,7 +25,10 @@
 | Flutter | 3.47.9 / Dart 3.13.7（此版本下验证通过） |
 | JDK | 17 |
 | Android SDK | platform 36、build-tools、NDK、CMake（Android Studio 会自动补齐缺失组件） |
-| 其他平台 | iOS 需 Xcode；`web/`、`windows/` 目录已生成，但未做完整验证 |
+
+> 本仓库只包含 Android 工程。iOS / Web / Windows 目录已移除，需要时用
+> `flutter create --platforms=ios .`（或 `web`、`windows`）重建：模板能重建，
+> 但定制过的图标与显示名需要重做。
 
 ### 运行
 
@@ -219,7 +222,7 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 | PDF 导出（含中文嵌入） | 已验证 |
 | Android release APK | 已构建通过 |
 | 真机安装 | 未在真机验证 |
-| iOS / Web / Windows | 工程文件已生成，未做完整验证 |
+| iOS / Web / Windows | 未提供工程目录，按需用 `flutter create` 重建 |
 
 ---
 
@@ -229,7 +232,7 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 - 多设备同步、备份导入
 - 按标签检索、全文搜索
 - 端上小模型（现在必须联网）
-- iOS 的 ATS 配置（若用 http 的本地服务需要额外加白名单）
+- iOS 支持：目录已移除，重建后还需补 ATS 配置（用 http 的本地服务时需要加白名单）
 
 ---
 
@@ -242,7 +245,7 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 
 脚本会先算出年轮图案的实际半径，把图案之外的区域压成统一底色，再生成
 Android 传统图标（5 档）与自适应图标（foreground + 纯色背景 + `anydpi-v26` 描述），
-顺带产出 15 个 iOS 尺寸。
+以及 15 个 iOS 尺寸（仓库当前不含 `ios/`，脚本检测到目录不存在会自动跳过）。
 
 **图案大小**由 `TARGET_PATTERN_RATIO` 控制（当前 `0.72`，实测成品图案直径占图标
 可见区的 70%）。觉得图标太满就调小、太空就调大，改完重跑即可。
