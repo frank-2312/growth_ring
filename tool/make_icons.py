@@ -18,10 +18,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "design", "app_icon_source.jpg")
 RES = os.path.join(ROOT, "android", "app", "src", "main", "res")
 
-# Android 自适应图标：108dp 画布，72dp 可见区，66dp 安全区。
-# 图案本身占原图约 89%，缩到 76% 后直径约 66dp，正好落在安全区边界上——
-# 既饱满又不会被裁圆切到最外环。
-FOREGROUND_RATIO = 0.76
+# Android 自适应图标：108dp 画布，其中 72dp 是 launcher 实际可见区。
+# 目标：图案直径占「可见区」的 70%（对齐 design 里给的参考比例）。
+# 原图中图案占 89%，所以图片本身要缩到 72 * 0.70 / 0.89 / 108 ≈ 0.524。
+VISIBLE_RATIO = 72 / 108
+TARGET_PATTERN_RATIO = 0.72  # 实测约 0.70，与参考图 0.704 对齐
+PATTERN_IN_SOURCE = 0.89
+FOREGROUND_RATIO = TARGET_PATTERN_RATIO * VISIBLE_RATIO / PATTERN_IN_SOURCE
+
+# 传统图标整张可见，图案占边长的 70% 即可，视觉上与自适应版本一致
+LEGACY_RATIO = TARGET_PATTERN_RATIO / PATTERN_IN_SOURCE
 
 LEGACY_SIZES = {
     "mipmap-mdpi": 48,
@@ -140,10 +146,15 @@ def main() -> None:
     print(f"源图裁切后: {sq.size}, 图案半径: {radius:.0f}px, 底色: {hex_bg}")
 
     # 1. 传统图标（Android 7 及以下、以及部分启动器）
+    #    图案同样只占边长 70%，避免两种图标在桌面上大小不一
     for folder, size in LEGACY_SIZES.items():
         out_dir = os.path.join(RES, folder)
         os.makedirs(out_dir, exist_ok=True)
-        icon = sq.resize((size, size), Image.LANCZOS)
+        inner = max(1, int(round(size * LEGACY_RATIO)))
+        art = sq.resize((inner, inner), Image.LANCZOS)
+        icon = Image.new("RGB", (size, size), bg)
+        offset = (size - inner) // 2
+        icon.paste(art, (offset, offset))
         icon.save(os.path.join(out_dir, "ic_launcher.png"), "PNG", optimize=True)
         print(f"  legacy {folder}/ic_launcher.png  {size}x{size}")
 
