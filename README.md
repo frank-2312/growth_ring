@@ -1,3 +1,5 @@
+<img src="design/app_icon_source.jpg" width="88" align="left" alt="年轮图标" hspace="16" vspace="4" />
+
 # 年轮 · growth_ring
 
 一本会越来越懂你的日记本。
@@ -232,4 +234,23 @@ UI 测试会加载真实中文字体——`flutter_test` 默认的 Ahem 字体�
 
 ---
 
-字体：霞鹜文楷（LXGW WenKai），SIL Open Font License 1.1。
+## 图标
+
+指纹年轮：脊线既是树的一圈圈年轮，也是一个人的指纹。两者的共同点是——每一圈都不重复。
+
+- 源图：`design/app_icon_source.jpg`
+- 生成：`python tool/make_icons.py`（需要 `pip install pillow`）
+
+脚本会先算出年轮图案的实际半径，把图案之外的区域压成统一底色，再生成
+Android 传统图标（5 档）与自适应图标（foreground + 纯色背景 + `anydpi-v26` 描述），
+顺带产出 15 个 iOS 尺寸。
+
+> **不做压平会怎样**：自适应图标的前景层是个正方形，被系统裁成圆形后，
+> 原图自带的暗色纹理和背景色不一致，会露出一圈明显的方形接缝。
+
+## License
+
+[MIT](LICENSE)。
+
+字体霞鹜文楷（LXGW WenKai）为 SIL Open Font License 1.1，可自由分发与嵌入。
+
