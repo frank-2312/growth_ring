@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../data/settings/settings_store.dart';
 import '../../state/app_state.dart';
+import '../chat/companion_settings_page.dart';
 import '../export/export_page.dart';
 import '../../shared/widgets/common.dart';
 
@@ -243,6 +244,23 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
             ],
+          ),
+
+          const SizedBox(height: 30),
+          SectionLabel('知己'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.tune, size: 20),
+            title: const Text('它的样子', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              '${state.settings.companion.displayName} · '
+              '${state.settings.companion.relation.label}的口气、脾气、提不提旧事',
+              style: TextStyle(fontSize: 11, color: soft),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 18),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CompanionSettingsPage()),
+            ),
           ),
 
           const SizedBox(height: 30),

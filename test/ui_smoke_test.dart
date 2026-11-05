@@ -10,6 +10,7 @@ import 'package:growth_ring/data/models/persona.dart';
 import 'package:growth_ring/data/repositories/persona_repository.dart';
 import 'package:growth_ring/data/settings/settings_store.dart';
 import 'package:growth_ring/features/chat/chat_page.dart';
+import 'package:growth_ring/features/chat/companion_settings_page.dart';
 import 'package:growth_ring/features/export/export_page.dart';
 import 'package:growth_ring/features/persona/persona_page.dart';
 import 'package:growth_ring/features/settings/settings_page.dart';
@@ -250,6 +251,24 @@ void main() {
 
   testWidgets('设置页', (tester) async {
     await _render(tester, _seedState(), const SettingsPage());
+  });
+
+  testWidgets('它的样子：性格设置页', (tester) async {
+    await _render(
+      tester,
+      _seedState(),
+      const CompanionSettingsPage(),
+      verify: () {
+        expect(find.text('它的样子'), findsOneWidget);
+        expect(find.text('老相识'), findsOneWidget);
+        expect(find.text('脾气'), findsOneWidget);
+      },
+    );
+  });
+
+  testWidgets('它的样子：窄屏不溢出', (tester) async {
+    await _render(tester, _seedState(), const CompanionSettingsPage(),
+        size: const Size(320, 720));
   });
 
   testWidgets('导出页', (tester) async {

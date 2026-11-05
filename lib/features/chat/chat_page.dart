@@ -5,6 +5,7 @@ import '../../core/fmt.dart';
 import '../../core/theme.dart';
 import '../../data/models/chat_message.dart';
 import '../../state/app_state.dart';
+import 'companion_settings_page.dart';
 
 const _starters = [
   '你觉得我是个什么样的人？',
@@ -58,10 +59,41 @@ class _ChatPageState extends State<ChatPage> {
     if (mounted) _scrollToEnd();
   }
 
+  void _openStyle() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CompanionSettingsPage()),
+    );
+  }
+
+  Future<void> _confirmClear() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('清空这段对话？'),
+        content: const Text('它对你日记的记忆不会受影响。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('算了'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('清空'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await context.read<AppState>().clearChat();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final messages = state.chatMessages;
+    final style = state.settings.companion;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final soft = isDark ? RingPalette.nightInkSoft : RingPalette.paperInkSoft;
 
@@ -76,7 +108,7 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 18, 12, 8),
+              padding: const EdgeInsets.fromLTRB(22, 18, 8, 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -84,9 +116,9 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '知己',
-                          style: TextStyle(
+                        Text(
+                          style.name.trim().isEmpty ? '知己' : style.name.trim(),
+                          style: const TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 3,
@@ -96,46 +128,44 @@ class _ChatPageState extends State<ChatPage> {
                         Text(
                           state.persona.isEmpty
                               ? '它还没读过你的日记'
-                              : '读过 ${state.persona.entriesCovered} 篇 · 记得你说过的话',
+                              : '${style.relation.label} · 读过 ${state.persona.entriesCovered} 篇',
                           style: TextStyle(fontSize: 12, color: soft),
                         ),
                       ],
                     ),
                   ),
-                  if (messages.isNotEmpty)
-                    IconButton(
-                      tooltip: '清空对话',
-                      onPressed: () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('清空这段对话？'),
-                            content: const Text('它对你日记的记忆不会受影响。'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('算了')),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                style: TextButton.styleFrom(
-                                    foregroundColor: Colors.redAccent),
-                                child: const Text('清空'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (ok == true && context.mounted) {
-                          await context.read<AppState>().clearChat();
-                        }
-                      },
-                      icon: const Icon(Icons.more_horiz, size: 20),
-                    ),
+                  PopupMenuButton<String>(
+                    tooltip: '更多',
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onSelected: (v) {
+                      if (v == 'style') {
+                        _openStyle();
+                      } else if (v == 'clear') {
+                        _confirmClear();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'style',
+                        child: Text('它是什么样的人', style: TextStyle(fontSize: 13.5)),
+                      ),
+                      if (messages.isNotEmpty)
+                        const PopupMenuItem(
+                          value: 'clear',
+                          child: Text('清空对话', style: TextStyle(fontSize: 13.5)),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: messages.isEmpty
-                  ? _EmptyChat(onPick: _send)
+                  ? _EmptyChat(
+                      name: style.name.trim(),
+                      onPick: _send,
+                      onTune: _openStyle,
+                    )
                   : ListView.builder(
                       controller: _scroll,
                       padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
@@ -223,14 +253,21 @@ class _ChatPageState extends State<ChatPage> {
 }
 
 class _EmptyChat extends StatelessWidget {
-  const _EmptyChat({required this.onPick});
+  const _EmptyChat({
+    required this.onPick,
+    required this.onTune,
+    this.name = '',
+  });
 
   final void Function(String) onPick;
+  final VoidCallback onTune;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final soft = isDark ? RingPalette.nightInkSoft : RingPalette.paperInkSoft;
+    final who = name.isEmpty ? '它' : name;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(28, 60, 28, 20),
@@ -239,7 +276,7 @@ class _EmptyChat extends StatelessWidget {
             size: 30, color: soft.withValues(alpha: 0.45)),
         const SizedBox(height: 18),
         Text(
-          '它读过你写的东西，所以你可以问得直接一点。',
+          '$who读你写的东西，所以你可以问得直接一点。',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, height: 1.8, color: soft),
         ),
@@ -265,6 +302,18 @@ class _EmptyChat extends StatelessWidget {
                 ),
               ),
             )),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: onTune,
+            style: TextButton.styleFrom(
+              foregroundColor: soft,
+              textStyle: const TextStyle(fontSize: 11.5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+            child: const Text('说话的口气不对？调一下'),
+          ),
+        ),
       ],
     );
   }

@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:growth_ring/core/fmt.dart';
+import 'package:growth_ring/data/models/companion_style.dart';
 import 'package:growth_ring/data/models/diary_entry.dart';
 import 'package:growth_ring/data/models/entry_digest.dart';
 import 'package:growth_ring/data/models/persona.dart';
 import 'package:growth_ring/llm/llm_client.dart';
+import 'package:growth_ring/llm/prompts.dart';
 
 void main() {
   group('Fmt', () {
@@ -129,6 +131,108 @@ void main() {
 
     test('完全不是 JSON 时返回 null', () {
       expect(tryParseJsonObject('不好意思我不明白'), isNull);
+    });
+  });
+
+  group('知己的性格配置', () {
+    test('默认配置：不强调提旧事，滑杆全在中间偏低', () {
+      const s = CompanionStyle();
+      final block = s.toPromptBlock();
+      expect(block.contains('你没有特别的名字'), isTrue);
+      expect(block.contains('几乎不提'), isTrue);
+      expect(block.contains('温度：'), isTrue);
+    });
+
+    test('维度越高，交代得越极端', () {
+      const cold = CompanionStyle(warmth: 10);
+      const hot = CompanionStyle(warmth: 95);
+      expect(cold.toPromptBlock().contains('偏冷'), isTrue);
+      expect(hot.toPromptBlock().contains('偏热'), isTrue);
+    });
+
+    test('名字与自定交代会进 prompt', () {
+      const s = CompanionStyle(name: '老陈', note: '别老问我问题');
+      final block = s.toPromptBlock();
+      expect(block.contains('你叫「老陈」'), isTrue);
+      expect(block.contains('别老问我问题'), isTrue);
+    });
+
+    test('序列化往返 + 坏数据回退默认', () {
+      const s = CompanionStyle(
+        name: '阿木',
+        relation: CompanionRelation.stranger,
+        warmth: 12,
+        memory: 88,
+        note: '可以损我',
+      );
+      final back = CompanionStyle.fromJsonString(s.toJsonString());
+      expect(back.name, '阿木');
+      expect(back.relation, CompanionRelation.stranger);
+      expect(back.memory, 88);
+      expect(back.note, '可以损我');
+
+      expect(CompanionStyle.fromJsonString('坏了').relation,
+          CompanionRelation.oldFriend);
+      // 越界数值被夹紧，不要让滑杆外的脏数据把 UI 撑崩
+      expect(CompanionStyle.fromJson({'warmth': 500}).warmth, 100);
+    });
+
+    test('预设只覆盖脾气，不动名字和备注', () {
+      const base = CompanionStyle(name: '阿木', note: '别问');
+      final preset = CompanionPreset.all.first.style;
+      expect(preset.name, isEmpty);
+      expect(base.copyWith(warmth: preset.warmth).name, '阿木');
+      // 四套预设的脾气确实不同，否则这个功能是假的
+      final fingerprints =
+          CompanionPreset.all.map((p) => p.style.toJsonString()).toSet();
+      expect(fingerprints.length, CompanionPreset.all.length);
+    });
+  });
+
+  group('知己 prompt：像人而不像档案', () {
+    List<Map<String, String>> build({
+      CompanionStyle style = const CompanionStyle(),
+      Persona? persona,
+    }) =>
+        Prompts.companion(
+          persona: persona ?? Persona.empty(),
+          nickname: 'Frank',
+          style: style,
+          recentDigests: const [],
+          recentEntries: const [],
+        );
+
+    test('性格配置写在最前面，且原样进入 system', () {
+      final msgs = build(style: const CompanionStyle(name: '老陈'));
+      expect(msgs, hasLength(1));
+      expect(msgs.first['content']!.startsWith('你叫「老陈」'), isTrue);
+    });
+
+    test('不再把画像整块 JSON 塞进去', () {
+      final persona = Persona.fromJsonString('''
+      {
+        "version": 2,
+        "summary": "一个把事往自己身上揽的人",
+        "motto": "算了，我来吧",
+        "traits": [{"name":"先做再改","detail":"不等条件齐备","strength":80,"evidence":"e","trend":"稳定"}],
+        "blind_spots": ["很少承认自己累"]
+      }
+      ''');
+      final content = build(persona: persona).first['content']!;
+      // 人话式的记忆，不是可枚举的字段
+      expect(content.contains('"traits"'), isFalse);
+      expect(content.contains('"summary"'), isFalse);
+      expect(content.contains('一个把事往自己身上揽的人'), isTrue);
+      expect(content.contains('很少承认自己累'), isTrue);
+    });
+
+    test('明确要求不要硬贴旧事、不要心理复述', () {
+      final content = build().first['content']!;
+      expect(content.contains('默认不用'), isTrue);
+      expect(content.contains('不要每次都把 TA 的话翻译成情绪结论'), isTrue);
+      expect(content.contains('一轮对话里不要连着两次翻旧事'), isTrue);
+      // 反面例子必须在，否则模型仍会滑回咨询师腔
+      expect(content.contains('听起来你在职场中常常感到被忽视'), isTrue);
     });
   });
 

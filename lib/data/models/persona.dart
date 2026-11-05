@@ -225,6 +225,64 @@ class Persona {
 
   String toJsonString() => jsonEncode(toJson());
 
+  /// 给「知己」对话用的记忆速写。
+  ///
+  /// 刻意不用 JSON：把结构化画像整块塞给模型，它就会忍不住逐条表演
+  /// （先总结你的特质、再引用你的原话），听起来像在读档案。
+  /// 换成几行不完整的印象，更像一个人记得的东西。
+  String toMemoryBlock() {
+    if (isEmpty) return '（你对 TA 还几乎一无所知，只有零散印象）';
+
+    final b = StringBuffer();
+    if (summary.isNotEmpty) b.writeln(summary);
+
+    final strong = [...traits]
+      ..sort((a, c) => c.strength.compareTo(a.strength));
+    final top = strong.take(4).toList();
+    if (top.isNotEmpty) {
+      b.writeln();
+      b.writeln('你比较有把握的几点：');
+      for (final t in top) {
+        final detail = t.detail.trim();
+        b.writeln('- ${t.name}${detail.isEmpty ? '' : '（$detail）'}');
+      }
+    }
+
+    if (patterns.isNotEmpty) {
+      b.writeln();
+      b.writeln('你注意过的一些反复出现的反应：');
+      for (final p in patterns.take(3)) {
+        b.writeln('- ${p.trigger}，${p.response}');
+      }
+    }
+
+    if (people.isNotEmpty) {
+      b.writeln();
+      b.writeln('常出现的人：${people.take(5).map((p) => '${p.name}（${p.role}）').join('、')}');
+    }
+
+    if (tensions.isNotEmpty) {
+      b.writeln();
+      b.writeln('你隐约觉得拧着的地方：${tensions.take(2).map((t) => t.between).join('；')}');
+    }
+
+    if (blindSpots.isNotEmpty) {
+      b.writeln();
+      b.writeln('TA 自己没怎么说过、但一直如此的：${blindSpots.take(2).join('；')}');
+    }
+
+    if (motto.isNotEmpty) {
+      b.writeln();
+      b.writeln('TA 自己写过的一句：$motto');
+    }
+
+    if (openQuestion.isNotEmpty) {
+      b.writeln();
+      b.writeln('你一直没弄明白的：$openQuestion');
+    }
+    return b.toString().trim();
+  }
+
   /// 容错解析：模型偶尔会少字段、给字符串而不是数组，
   /// 这里一律吞掉异常返回安全默认值，保证读取历史快照永不崩。
   static Persona fromJson(Map<String, Object?> j) {

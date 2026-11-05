@@ -296,11 +296,13 @@ class AppState extends ChangeNotifier {
 
     final client = _client();
     try {
-      final recentDigests = await diary.recentDigests(limit: 21);
+      // 记忆材料给得太多，模型就会忍不住逐条引用。宁可少给一点。
+      final recentDigests = await diary.recentDigests(limit: 10);
       final recentEntries = await diary.recentEntries(days: 3);
       final system = Prompts.companion(
         persona: persona,
         nickname: settings.nickname,
+        style: settings.companion,
         recentDigests: recentDigests,
         recentEntries: recentEntries,
       );

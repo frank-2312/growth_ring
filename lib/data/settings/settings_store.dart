@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/companion_style.dart';
+
 /// 模型连接配置。刻意只用 OpenAI 兼容协议，
 /// 这样百炼、DeepSeek、Kimi、Ollama 都只是换一行 baseUrl。
 @immutable
@@ -56,6 +58,7 @@ class AppSettings {
     this.nickname = '',
     this.themeMode = ThemeMode.dark,
     this.autoReflect = true,
+    this.companion = const CompanionStyle(),
   });
 
   final LlmConfig llm;
@@ -67,17 +70,22 @@ class AppSettings {
   /// 保存日记后自动更新画像
   final bool autoReflect;
 
+  /// 「知己」的性格：名字、关系、说话的倾向
+  final CompanionStyle companion;
+
   AppSettings copyWith({
     LlmConfig? llm,
     String? nickname,
     ThemeMode? themeMode,
     bool? autoReflect,
+    CompanionStyle? companion,
   }) =>
       AppSettings(
         llm: llm ?? this.llm,
         nickname: nickname ?? this.nickname,
         themeMode: themeMode ?? this.themeMode,
         autoReflect: autoReflect ?? this.autoReflect,
+        companion: companion ?? this.companion,
       );
 }
 
@@ -95,6 +103,7 @@ class SettingsStore {
   static const _kNickname = 'nickname';
   static const _kTheme = 'theme_mode';
   static const _kAutoReflect = 'auto_reflect';
+  static const _kCompanion = 'companion_style';
   static const _kInsecureFallback = 'api_key_insecure_fallback';
 
   final FlutterSecureStorage _secure;
@@ -131,6 +140,7 @@ class SettingsStore {
         _ => ThemeMode.dark,
       },
       autoReflect: prefs.getBool(_kAutoReflect) ?? true,
+      companion: CompanionStyle.fromJsonString(prefs.getString(_kCompanion)),
     );
   }
 
@@ -146,6 +156,7 @@ class SettingsStore {
       ThemeMode.dark => 'dark',
     });
     await prefs.setBool(_kAutoReflect, settings.autoReflect);
+    await prefs.setString(_kCompanion, settings.companion.toJsonString());
 
     try {
       await _secure.write(key: _kApiKey, value: settings.llm.apiKey);
