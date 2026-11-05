@@ -73,7 +73,7 @@ void main() {
         "traits": [{"name":"a","detail":"b","strength":50,"evidence":"e","trend":"稳定"}],
         "themes": [{"name":"t","weight":40,"note":"n"}],
         "patterns": [{"trigger":"当A","response":"就会B","note":"c"}],
-        "people": [{"name":"妈","role":"母亲","dynamic":"报喜不报忧"}],
+        "people": [{"name":"老周","role":"同事","dynamic":"说话直接"}],
         "tensions": [{"between":"想留下 / 想走","detail":"d"}],
         "blind_spots": ["x"],
         "growth_edges": ["y"],
@@ -83,7 +83,7 @@ void main() {
       final again = Persona.fromJsonString(p.toJsonString());
       expect(again.version, 3);
       expect(again.traits.single.name, 'a');
-      expect(again.people.single.name, '妈');
+      expect(again.people.single.name, '老周');
       expect(again.openQuestion, 'z');
     });
   });

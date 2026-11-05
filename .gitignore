@@ -52,3 +52,10 @@ app.*.map.json
 
 # 图标生成脚本产生的预览图
 /build/icon_*.png
+
+# 构建产物与签名材料兜底（正常路径已被上面的规则覆盖，这里防止误提交）
+**/*.apk
+**/*.aab
+**/*.jks
+**/*.keystore
+**/key.properties

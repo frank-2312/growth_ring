@@ -44,6 +44,16 @@ jobs:
           channel: stable
           cache: true
 
+      # 仓库里的构建配置面向国内网络（腾讯云 Gradle 发行版 + 阿里云 Maven），
+      # 而 Actions runner 在海外，这里改回官方源，避免跨境拉取拖慢或失败。
+      # 仅作用于 CI 工作区，不影响任何人本机构建。
+      - name: Use official Gradle and Maven sources
+        run: |
+          sed -i 's#mirrors.cloud.tencent.com/gradle/#services.gradle.org/distributions/#' \
+            android/gradle/wrapper/gradle-wrapper.properties
+          sed -i '/maven.aliyun.com/d' android/settings.gradle.kts
+          grep distributionUrl android/gradle/wrapper/gradle-wrapper.properties
+
       - run: flutter pub get
       - run: flutter build apk --release
 

@@ -29,11 +29,11 @@ AppState _seedState() {
       dateKey: Fmt.dateKey(DateTime.now()),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
-      content: '下班路上突然下起了雨，没带伞。站在便利店门口等了二十分钟，'
-          '看着雨把整条街洗了一遍。奇怪的是并不烦。',
+      content: '下班路上拐进菜市场，买了两根玉米和一把小葱。摊位老板多塞了一个番茄，'
+          '说今天剩得多。回家把玉米煮上，厨房里全是甜味。',
       mood: '平静',
       energy: 3,
-      echo: '你等了二十分钟，但没觉得自己在浪费时间。',
+      echo: '你把一个没安排的晚上，过出了味道。',
       analyzed: true,
     ),
     DiaryEntry(
@@ -41,10 +41,10 @@ AppState _seedState() {
       dateKey: '2026-11-03',
       createdAt: DateTime(2026, 11, 3, 22),
       updatedAt: DateTime(2026, 11, 3, 22),
-      content: '今天把那个一直拖着的事做完了。做完发现只花了四十分钟。\n所以之前那三个星期到底在怕什么。',
+      content: '把阳台那盆快枯的薄荷换了土，剪掉一半的枯枝。\n浇完水放在窗边，下午回来看，叶子好像立起来了一点。',
       mood: '轻快',
       energy: 4,
-      echo: '你怕的可能不是这件事本身。',
+      echo: '剪掉的那一半，本来就留不住。',
       analyzed: true,
     ),
     DiaryEntry(
@@ -52,8 +52,7 @@ AppState _seedState() {
       dateKey: '2026-11-01',
       createdAt: DateTime(2026, 11, 1, 23),
       updatedAt: DateTime(2026, 11, 1, 23),
-      content: '妈又打电话来问工作的事。我说挺好的，她说那就好。\n挂了以后在阳台站了很久。'
-          '其实想说的是"我有点撑不住"，但话到嘴边变成了"最近挺忙的"。',
+      content: '早上开会开到十一点，方案又被打回来一次。\n下午重新排了一版，比上一版短了一半，反而说得更清楚。',
       mood: '发闷',
       energy: 2,
       analyzed: true,
@@ -64,21 +63,21 @@ AppState _seedState() {
     "version": 3,
     "updated_at": "2026-11-03T22:00:00.000",
     "entries_covered": 12,
-    "summary": "一个习惯先自己消化情绪的人，对亲近的人尤其报喜不报忧。做事前容易高估难度，做完又觉得不值一提。",
-    "motto": "其实想说的是\\"我有点撑不住\\"，但话到嘴边变成了\\"最近挺忙的\\"。",
+    "summary": "一个习惯把日子排成清单的人：先列出要做的，再一件件划掉。对细节记得久，容易被没做完的小事绊住。",
+    "motto": "有时候删掉比加上难。",
     "traits": [
-      {"name": "把情绪往后放，先处理事情", "detail": "遇到不顺时先想怎么办，情绪通常隔几天才浮上来。",
-       "strength": 82, "evidence": "站着等了二十分钟，反而有点高兴", "trend": "稳定"},
-      {"name": "对家人过滤坏消息", "detail": "怕对方担心，把求助改写成一切正常。",
-       "strength": 76, "evidence": "话到嘴边变成了「最近挺忙的」", "trend": "变强"}
+      {"name": "先做出来再改", "detail": "不等条件齐备，边做边调整版本。",
+       "strength": 78, "evidence": "下午重新排了一版，比上一版短了一半", "trend": "稳定"},
+      {"name": "对小事记得久", "detail": "别人的一个动作、一句话，会在脑子里停留很久。",
+       "strength": 71, "evidence": "摊主多塞了一个番茄", "trend": "稳定"}
     ],
-    "themes": [{"name": "和母亲的关系", "weight": 62, "note": "每周都会出现，语气总是轻描淡写"}],
-    "patterns": [{"trigger": "当想开口求助时", "response": "你会先判断对方能不能承受", "note": "保护了别人，代价是自己一直独自扛"}],
-    "people": [{"name": "妈", "role": "母亲", "dynamic": "报喜不报忧，双方都在演一切正常"}],
-    "tensions": [{"between": "「想被看见」与「怕成为负担」", "detail": "所以说出的话总比心里的话轻一级"}],
-    "blind_spots": ["你反复用「其实也没什么」开头，但后面跟的往往是很重的事。"],
-    "growth_edges": ["开始注意到拖延的成本主要在等待里。"],
-    "open_question": "那三个星期里，真正让你不敢开始的是哪一步？"
+    "themes": [{"name": "工作节奏", "weight": 58, "note": "每周都会出现，多半和方案的版本有关"}],
+    "patterns": [{"trigger": "当方案被推翻时", "response": "你会先缩到最小可行的那一版", "note": "通常比原来的更清楚"}],
+    "people": [{"name": "同事", "role": "同事", "dynamic": "会上直接，会后一起改"}],
+    "tensions": [{"between": "「想做得完整」与「想快点交付」", "detail": "所以总在最后一刻删东西"}],
+    "blind_spots": ["你写「没什么特别的一天」的次数，比写具体事情还多。"],
+    "growth_edges": ["开始注意到，删减之后方案反而更清楚。"],
+    "open_question": "如果不用赶时间，你会把那版方案做成什么样？"
   }
   ''');
   state.insights = [
@@ -86,9 +85,9 @@ AppState _seedState() {
       id: 'i1',
       createdAt: DateTime(2026, 11, 1, 23, 50),
       dateKey: '2026-11-01',
-      title: '同一件事的两种版本',
-      body: '你在日记里写想说自己撑不住，在电话里说的却是挺忙的。',
-      quote: '话到嘴边变成了"最近挺忙的"',
+      title: '删减之后才清楚',
+      body: '同一件事改到第三版，篇幅少了一半，反而说明白了。你删掉的不是内容，是绕路。',
+      quote: '删掉一半之后，剩下的那部分才站得住。',
     ),
   ];
   state.chatMessages = [
@@ -101,9 +100,8 @@ AppState _seedState() {
     ChatMessage(
       id: 'c2',
       fromUser: false,
-      text: '一个会先替别人想好承受能力的人。上次你妈打电话来，你想说撑不住，最后说的是挺忙的——'
-          '不是不想说，是先替她算了一遍说出来会怎样。\n不过最近有件事不一样了，那个拖了三周的事，'
-          '你做完了只花了四十分钟。你自己也问了句「到底在怕什么」。',
+      text: '一个先把日子排成清单的人。方案被退回那天，你没急着解释，先把它缩到最短的一版——'
+          '不是认输，是知道哪部分站得住。\n阳台那盆薄荷也是，剪掉一半枯枝之后，你才看清它还活着。',
       createdAt: DateTime(2026, 11, 4, 20, 1),
     ),
   ];

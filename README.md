@@ -12,76 +12,54 @@
 2. **懂**：每篇日记被读成结构化事实，定期合并进一份画像（特质、模式、矛盾、盲点）。
 3. **导出**：把日记和画像排成一本可以打印的 PDF 小书。
 
----
-
-## 现在能跑吗
-
-| 项目 | 状态 |
-| --- | --- |
-| `flutter analyze` | 0 issue |
-| 单元 + UI 渲染测试 | 40 个全通过 |
-| PDF 导出（含中文嵌入） | 已验证，见 `docs/sample_diary.pdf` |
-| Android 构建 | **已构建成功**：`build/app/outputs/flutter-apk/app-release.apk`（68.5 MB，arm64，minSdk 24 / target 36） |
-| 真机安装 | 未验证 —— 构建时没有连接设备 |
+> 一个本地优先的 Flutter 日记 App：数据只存在你的设备上，没有账号、没有云同步、没有埋点。LLM 能力可选，服务端地址由你自己填写，项目本身不绑定任何模型供应商。
 
 ---
 
-## 环境（本机已配好）
+## 快速开始
 
-| 项 | 值 |
+### 环境要求
+
+| 项 | 说明 |
 | --- | --- |
-| Flutter | 3.47.9 / Dart 3.13.7，`C:\dev\flutter` |
-| Android SDK | `C:\dev\android-sdk`（已 `flutter config --android-sdk` 指向） |
-| SDK 组件 | platform-tools 37.0.1、platforms android-34/35/36、build-tools 36.0.0、NDK 28.2.13676358、CMake 3.22.1 |
-| JDK | `C:\Program Files\Java\jdk-17` |
-| pub 镜像 | `https://pub.flutter-io.cn` |
+| Flutter | 3.47.9 / Dart 3.13.7（此版本下验证通过） |
+| JDK | 17 |
+| Android SDK | platform 36、build-tools、NDK、CMake（Android Studio 会自动补齐缺失组件） |
+| 其他平台 | iOS 需 Xcode；`web/`、`windows/` 目录已生成，但未做完整验证 |
 
-### 构建命令
+### 运行
 
 ```bash
-export PUB_HOSTED_URL=https://pub.flutter-io.cn
-export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-export JAVA_HOME="/c/Program Files/Java/jdk-17"
-export ANDROID_HOME="C:\\dev\\android-sdk"
-
 flutter pub get
-flutter build apk --release     # 产物在 build/app/outputs/flutter-apk/
-flutter test                    # 40 个测试
+flutter analyze
+flutter test
+flutter run
 ```
 
-### 这台机器上的三个坑（都已修好，换机器时注意）
-
-1. **Gradle 堆开太大**：Flutter 模板默认 `-Xmx8G`，本机物理内存只有 8G，
-   JVM 会疯狂交换，构建慢到像卡死。已改为 `-Xmx3G`（见 `android/gradle.properties`）。
-2. **Gradle 发行版下载卡住**：`services.gradle.org` 会 307 跳到 **github.com**，
-   而这里 GitHub 直连不通。已把 `distributionUrl` 换成腾讯云镜像。
-3. **Maven 依赖慢**：已在 `settings.gradle.kts` 和 `build.gradle.kts` 里
-   加了阿里云镜像（google / public / gradle-plugin），官方源保留作兜底。
-
-> 首次构建 Gradle 会自动补装 Platform 34 与 CMake 3.22.1，属正常现象，
-> 之后有缓存就快得多（本次冷构建 24 分钟，热构建几十秒）。
->
-> **Windows 开发者模式**未开启时 `pub get` 会警告符号链接，但这次 release
-> 构建并未受阻。若日后遇到 `Building with plugins requires symlink support`，
-> 用管理员身份执行 `start ms-settings:developers` 打开开关即可。
-
-### 装到手机
-
-APK 是 arm64 的，直接拷到手机点安装（需允许「安装未知来源应用」）。
-或开 USB 调试后：
+### 构建 Android APK
 
 ```bash
+flutter build apk --release     # 产物在 build/app/outputs/flutter-apk/
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
-体积 68.5 MB，其中中文字体占 19 MB。想瘦身可以二选一：
+默认 APK 约 70 MB 量级，其中中文字体占 19 MB。想瘦身可以二选一：
 
 ```bash
 flutter build apk --release --split-per-abi   # 按架构分包，单个约 35-40 MB
 ```
 
-或把 `assets/fonts/LXGWWenKai-Regular.ttf` 子集化成 GB2312 常用字（约 3-4 MB，
-代价是生僻字可能缺字）。
+或把 `assets/fonts/LXGWWenKai-Regular.ttf` 子集化成 GB2312 常用字（约 3-4 MB，代价是生僻字可能缺字）。
+
+### 关于 Gradle 镜像
+
+仓库里 Android 侧的构建配置默认走了国内镜像，为的是在国内网络下能稳定拉到依赖：
+
+- `android/gradle/wrapper/gradle-wrapper.properties`：Gradle 发行版指向腾讯云镜像
+- `android/settings.gradle.kts`：`pluginManagement` 优先阿里云 Maven，官方源保留作兜底
+- `android/gradle.properties`：Gradle 堆上限设为 3G（按 8 GB 内存的机器调整过）
+
+在海外网络或内存更充裕的机器上，把前两项改回 `services.gradle.org` 与 `google()` / `mavenCentral()` / `gradlePluginPortal()`，按需要调大 `-Xmx` 即可。这部分只影响构建能否拉到依赖，**不影响 App 行为**。
 
 ---
 
@@ -98,6 +76,8 @@ flutter build apk --release --split-per-abi   # 按架构分包，单个约 35-4
 | 本机 Ollama | `http://192.168.x.x:11434/v1` | `qwen2.5:14b` |
 
 配好后点「测试连接」，通了会回一句「通了」。
+
+日记的写入、时间线浏览与 PDF 导出都不经过模型；只有下面三种主动操作才会发起请求：点「让它看一眼」、点「读一读」、在知己里发消息。
 
 **温度建议**：画像合并走代码里的 0.5，聊天默认 0.7～0.8。设置页的滑块影响聊天手感。
 
@@ -129,7 +109,7 @@ flutter build apk --release --split-per-abi   # 按架构分包，单个约 35-4
 | `summary` | 此刻的你，两三句话 |
 | `traits` | 你性格里的几处，**每条必须带原文证据** |
 | `patterns` | 「当 X 时，你会 Y」的反复手感 |
-| `tensions` | 同时成立的矛盾，比如「想被看见」与「怕成为负担」 |
+| `tensions` | 同时成立的矛盾，比如「想独立」与「怕被落下」 |
 | `blind_spots` | 你写了很多次但没点明的东西 |
 | `themes` | 占位置的事，带权重 |
 | `people` | 反复出现的人，以及你们的相处方式 |
@@ -153,9 +133,11 @@ flutter build apk --release --split-per-abi   # 按架构分包，单个约 35-4
 
 ## PDF 导出
 
-中文字体已内嵌（`assets/fonts/LXGWWenKai-Regular.ttf`，霞鹜文楷，SIL OFL 1.1）。
+中文字体已内嵌（`assets/fonts/LXGWWenKai-Regular.ttf`，霞鹜文楷；许可全文见 [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)）。
 
-> **这是这类需求最大的坑**：`pdf` 包不认识系统字体，不嵌 TTF 的话导出整页都是方块。字体经子集化后，3 篇日记的 PDF 约 57 KB。
+> **这是这类需求最大的坑**：`pdf` 包不认识系统字体，不嵌 TTF 的话导出整页都是方块。字体经子集化后，3 篇日记的 PDF 约 79 KB。
+
+一份实际产物见 [`docs/sample_diary.pdf`](docs/sample_diary.pdf)（7 页，A5）。其中的日记、画像与对话都是虚构的示例数据，不对应任何真实用户。
 
 排版结构：封面（含「这一刻的你」）→ 按月分章的正文（每篇带当天回声）→ 画像全文 → 洞察时间线 → 后记。
 
@@ -209,14 +191,6 @@ ChatPage ──> AppState.sendMessage ──> 画像 + 近期读解 注入 syste
 
 ---
 
-## 还没做的
-
-- 图片 / 语音日记
-- 多设备同步、备份导入
-- 按标签检索、全文搜索
-- 端上小模型（现在必须联网）
-- iOS 的 ATS 配置（若用 http 的本地服务需要额外加白名单）
-
 ## 测试
 
 ```bash
@@ -227,10 +201,35 @@ flutter test
 | --- | --- |
 | `test/core_test.dart` | 日期/字数/摘要、画像与 digest 的容错解析、JSON 提取 |
 | `test/llm_client_test.dart` | 请求体、SSE 跨分片拼接、401/404/超时/空响应的错误翻译 |
-| `test/pdf_export_test.dart` | 真实生成 PDF 并落盘到 `build/sample_diary.pdf` |
+| `test/pdf_export_test.dart` | 真实生成 PDF 并落盘到 `build/sample_diary.pdf`（`docs/` 下的示例即由此产出） |
 | `test/ui_smoke_test.dart` | 六个页面在 390 与 320 逻辑宽度下渲染不溢出 |
 
 UI 测试会加载真实中文字体——`flutter_test` 默认的 Ahem 字体每个字符都是方块宽，不换字体测出来的都是假溢出。
+
+CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android release 构建，产出 APK artifact。
+
+---
+
+## 当前状态
+
+| 项目 | 状态 |
+| --- | --- |
+| `flutter analyze` | 0 issue |
+| 单元 + UI 渲染测试 | 40 个通过 |
+| PDF 导出（含中文嵌入） | 已验证 |
+| Android release APK | 已构建通过 |
+| 真机安装 | 未在真机验证 |
+| iOS / Web / Windows | 工程文件已生成，未做完整验证 |
+
+---
+
+## 还没做的
+
+- 图片 / 语音日记
+- 多设备同步、备份导入
+- 按标签检索、全文搜索
+- 端上小模型（现在必须联网）
+- iOS 的 ATS 配置（若用 http 的本地服务需要额外加白名单）
 
 ---
 
@@ -254,9 +253,12 @@ Android 传统图标（5 档）与自适应图标（foreground + 纯色背景 + 
 > **不做压平会怎样**：自适应图标的前景层是个正方形，被系统裁成圆形后，
 > 原图自带的暗色纹理和背景色不一致，会露出一圈明显的方形接缝。
 
+---
+
 ## License
 
-[MIT](LICENSE)。
+本项目代码采用 [MIT](LICENSE)。
 
-字体霞鹜文楷（LXGW WenKai）为 SIL Open Font License 1.1，可自由分发与嵌入。
+`assets/fonts/LXGWWenKai-Regular.ttf`（霞鹜文楷 / LXGW WenKai）是第三方字体作品，版权归原作者 LXGW 所有，依 **SIL Open Font License 1.1** 单独授权，**不在本仓库 MIT 许可范围内**。许可全文、版权声明与保留字体名条款随字体提供：[`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)。再分发或修改时请一并遵守这些条款——尤其不要用保留字体名发布修改版。
 
+除上述字体外，本仓库的其余内容（含 `design/` 下的图标素材与 `tool/` 下的脚本）随代码以 MIT 发布。
