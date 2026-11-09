@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics.dart';
 import '../../core/theme.dart';
 import '../../data/models/diary_entry.dart';
 import '../../services/pdf_exporter.dart';
@@ -54,6 +55,9 @@ class _ExportPageState extends State<ExportPage> {
         nickname: state.settings.nickname,
         options: opts,
       );
+      Analytics.track('pdf_exported', {
+        'entries': Analytics.countBucket(entries.length),
+      });
       if (!mounted) return;
       setState(() => _building = false);
       await Navigator.of(context).push(

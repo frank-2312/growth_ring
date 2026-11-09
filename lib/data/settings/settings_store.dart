@@ -59,6 +59,7 @@ class AppSettings {
     this.themeMode = ThemeMode.dark,
     this.autoReflect = true,
     this.companion = const CompanionStyle(),
+    this.analytics = true,
   });
 
   final LlmConfig llm;
@@ -73,12 +74,16 @@ class AppSettings {
   /// 「知己」的性格：名字、关系、说话的倾向
   final CompanionStyle companion;
 
+  /// 是否上报匿名使用统计（只有事件计数，没有内容和身份）
+  final bool analytics;
+
   AppSettings copyWith({
     LlmConfig? llm,
     String? nickname,
     ThemeMode? themeMode,
     bool? autoReflect,
     CompanionStyle? companion,
+    bool? analytics,
   }) =>
       AppSettings(
         llm: llm ?? this.llm,
@@ -86,6 +91,7 @@ class AppSettings {
         themeMode: themeMode ?? this.themeMode,
         autoReflect: autoReflect ?? this.autoReflect,
         companion: companion ?? this.companion,
+        analytics: analytics ?? this.analytics,
       );
 }
 
@@ -104,6 +110,7 @@ class SettingsStore {
   static const _kTheme = 'theme_mode';
   static const _kAutoReflect = 'auto_reflect';
   static const _kCompanion = 'companion_style';
+  static const _kAnalytics = 'analytics_enabled';
   static const _kInsecureFallback = 'api_key_insecure_fallback';
 
   final FlutterSecureStorage _secure;
@@ -141,6 +148,7 @@ class SettingsStore {
       },
       autoReflect: prefs.getBool(_kAutoReflect) ?? true,
       companion: CompanionStyle.fromJsonString(prefs.getString(_kCompanion)),
+      analytics: prefs.getBool(_kAnalytics) ?? true,
     );
   }
 
@@ -157,6 +165,7 @@ class SettingsStore {
     });
     await prefs.setBool(_kAutoReflect, settings.autoReflect);
     await prefs.setString(_kCompanion, settings.companion.toJsonString());
+    await prefs.setBool(_kAnalytics, settings.analytics);
 
     try {
       await _secure.write(key: _kApiKey, value: settings.llm.apiKey);

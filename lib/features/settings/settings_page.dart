@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics.dart';
 import '../../core/theme.dart';
 import '../../data/settings/settings_store.dart';
 import '../../state/app_state.dart';
@@ -247,6 +248,23 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
 
           const SizedBox(height: 30),
+          SectionLabel('隐私'),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('匿名使用统计', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              '只记「打开了、开始写了、聊了几句、导出了」这类事，'
+              '连字数都只记区间；不带日记内容，不带设备标识，也不知道你是谁。'
+              '${Analytics.configured ? '' : '（这个安装包没有接入统计）'}',
+              style: TextStyle(fontSize: 11, color: soft, height: 1.6),
+            ),
+            value: state.settings.analytics,
+            onChanged: (v) async {
+              await state.updateSettings(state.settings.copyWith(analytics: v));
+            },
+          ),
+
+          const SizedBox(height: 30),
           SectionLabel('知己'),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -294,6 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Text(
             '日记存在这台设备上，不上传任何服务器。\n'
             '只有在你点「让它看一眼」、「读一读」或和它聊天时，相关的文字才会发给你自己配置的模型服务商。\n'
+            '匿名统计只会知道「有人打开了、开始写了、聊了几句」，既不含日记内容，也不含设备标识。\n'
             'API Key 存在系统的安全存储里${state.settingsStore.secureStorageUnavailable ? '（这台设备上安全存储不可用，已降级为普通存储，请留意）' : ''}。\n\n'
             '它不是心理医生，也不该被当成心理医生。它只是一个记性很好、愿意说实话的读者。',
             style: TextStyle(fontSize: 11.5, height: 1.9, color: soft),

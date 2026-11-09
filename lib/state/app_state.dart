@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/analytics.dart';
 import '../core/fmt.dart';
 import '../data/db/app_database.dart';
 import '../data/models/chat_message.dart';
@@ -62,11 +63,22 @@ class AppState extends ChangeNotifier {
     try {
       settings = await settingsStore.load();
       await refreshAll();
+      await Analytics.start(enabled: settings.analytics);
+      _trackOpen();
     } catch (e) {
       bootError = e.toString();
     }
     booted = true;
     _notify();
+  }
+
+  /// 冷启动一次算一次。只带粗粒度信息，用来判断「有多少人在用、用到什么程度」。
+  void _trackOpen() {
+    Analytics.track('app_open', {
+      'entries': Analytics.countBucket(entries.length),
+      'persona': persona.isEmpty ? 'none' : 'yes',
+      'theme': settings.themeMode.name,
+    });
   }
 
   Future<void> refreshAll() async {
@@ -163,6 +175,18 @@ class AppState extends ChangeNotifier {
     );
 
     await diary.upsert(entry);
+
+    // 页面每敲几个字就会落一次库（1.4s 防抖），按保存次数统计会严重虚高。
+    // 所以只在「这一天从没有字变成有字」时记一笔，代表真正开始写了。
+    final firstWrite = (existing?.content.trim().isEmpty ?? true) &&
+        content.trim().isNotEmpty;
+    if (firstWrite) {
+      Analytics.track('entry_started', {
+        'chars': Analytics.charsBucket(content.trim().length),
+        'mood': mood == null ? 'no' : 'yes',
+      });
+    }
+
     await refreshAll();
     return entry;
   }
@@ -234,6 +258,10 @@ class AppState extends ChangeNotifier {
       reflecting = false;
       reflectStage = '';
       await refreshAll();
+      Analytics.track('reflect_done', {
+        'digested': result.digested,
+        'insights': result.insights.length,
+      });
       return result;
     } catch (e) {
       lastError = e.toString();
@@ -253,11 +281,13 @@ class AppState extends ChangeNotifier {
     final client = _client();
     try {
       final engine = PersonaEngine(client: client, diary: diary, personas: personas);
-      return await engine.retrospective(
+      final text = await engine.retrospective(
         persona: persona,
         nickname: settings.nickname,
         days: days,
       );
+      Analytics.track('retrospective', {'days': days});
+      return text;
     } finally {
       client.dispose();
     }
@@ -337,6 +367,9 @@ class AppState extends ChangeNotifier {
           text: finalText,
           createdAt: placeholder.createdAt,
         ));
+        Analytics.track('chat_sent', {
+          'persona': persona.isEmpty ? 'none' : 'yes',
+        });
       }
     } catch (e) {
       _replaceLastAssistant(e.toString(), streaming: false);
@@ -365,8 +398,17 @@ class AppState extends ChangeNotifier {
   // --- 设置 ---------------------------------------------------------------
 
   Future<void> updateSettings(AppSettings next) async {
+    final analyticsChanged = next.analytics != settings.analytics;
     settings = next;
     await settingsStore.save(next);
+    if (analyticsChanged) {
+      if (next.analytics) {
+        // 启动时关掉的话从没初始化过，这里补上
+        await Analytics.start(enabled: true);
+      } else {
+        Analytics.setEnabled(false);
+      }
+    }
     _notify();
   }
 
