@@ -2,7 +2,7 @@ name: growth_ring
 description: "年轮 · 一本会越来越懂你的日记本"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.3+4
 
 environment:
   sdk: ^3.13.7
@@ -26,6 +26,9 @@ dependencies:
   # 网络
   http: ^1.6.0
 
+  # 校验下载下来的安装包（update.json 里填了 sha256 才用得上）
+  crypto: ^3.0.8
+
   # 日期格式化
   intl: ^0.20.3
 
@@ -33,13 +36,13 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   aptabase_flutter: ^0.5.0
+  open_filex: ^5.0.0
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  package_info_plus: ^10.2.2
-
 flutter:
   uses-material-design: true
 

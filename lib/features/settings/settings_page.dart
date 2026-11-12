@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../../core/analytics.dart';
 import '../../core/theme.dart';
+import '../../core/updater.dart';
 import '../../data/settings/settings_store.dart';
 import '../../state/app_state.dart';
 import '../chat/companion_settings_page.dart';
 import '../export/export_page.dart';
 import '../../shared/widgets/common.dart';
+import '../../shared/widgets/update_prompt.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -27,6 +29,12 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _testResult;
   bool _obscure = true;
   bool _saving = false;
+  bool _checkingUpdate = false;
+  String? _updateHint;
+
+  /// 版本号从安装包里读，别在这里写死——每次发版手改一处，早晚会忘。
+  /// 测试环境没有插件，读不到就退回只显示「年轮」。
+  late final Future<String> _versionLabel = Updater.localLabel();
 
   @override
   void initState() {
@@ -317,20 +325,88 @@ class _SettingsPageState extends State<SettingsPage> {
             '它不是心理医生，也不该被当成心理医生。它只是一个记性很好、愿意说实话的读者。',
             style: TextStyle(fontSize: 11.5, height: 1.9, color: soft),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.system_update_alt, size: 20),
+            title: const Text('检查更新', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              _updateHint ?? '看看有没有新的一版',
+              style: TextStyle(fontSize: 11, color: soft, height: 1.6),
+            ),
+            trailing: _checkingUpdate
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 1.6),
+                  )
+                : const Icon(Icons.chevron_right, size: 18),
+            onTap: _checkingUpdate ? null : _checkForUpdate,
+          ),
+          const SizedBox(height: 18),
           Center(
-            child: Text(
-              '年轮 v1.0',
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 3,
-                color: soft.withValues(alpha: 0.6),
+            child: FutureBuilder<String>(
+              future: _versionLabel,
+              builder: (context, snap) => Text(
+                snap.hasData ? '年轮 ${snap.data}' : '年轮',
+                style: TextStyle(
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  color: soft.withValues(alpha: 0.6),
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// 手动检查不受 12 小时节流限制，出错也必须说出来——
+  /// 自动检查可以装死，用户主动点了没反应就不行。
+  Future<void> _checkForUpdate() async {
+    setState(() {
+      _checkingUpdate = true;
+      _updateHint = null;
+    });
+
+    try {
+      final label = await Updater.localLabel();
+      final check = await Updater.check(manual: true);
+      if (!mounted) return;
+
+      final info = check.info;
+      setState(() {
+        _checkingUpdate = false;
+        _updateHint = check.error ??
+            (info == null ? '当前 $label · 就是最新的一版' : '发现新版本 v${info.version}');
+      });
+
+      if (check.error != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(check.error!)));
+        return;
+      }
+      if (info == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('已经是最新版本（$label）')));
+        return;
+      }
+
+      final local = await Updater.localVersionCode();
+      if (!mounted) return;
+      await UpdatePrompt.show(
+        context,
+        info,
+        mandatory: info.isMandatoryFor(local),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _checkingUpdate = false;
+        _updateHint = '$e';
+      });
+    }
   }
 
   Future<void> _confirmWipe() async {

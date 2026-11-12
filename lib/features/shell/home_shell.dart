@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/updater.dart';
+import '../../shared/widgets/update_prompt.dart';
 import '../chat/chat_page.dart';
 import '../persona/persona_page.dart';
 import '../timeline/timeline_page.dart';
@@ -21,6 +24,31 @@ class _HomeShellState extends State<HomeShell> {
     PersonaPage(),
     ChatPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 只在 release 里自动查：开发时天天改版本号，弹窗只会碍事。
+    if (kReleaseMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkUpdate());
+    }
+  }
+
+  /// 启动后晚几秒再查，别和首屏抢带宽，也不打断刚开始写的那句话。
+  Future<void> _checkUpdate() async {
+    await Future<void>.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+    final check = await Updater.check();
+    if (!mounted || !check.hasUpdate) return;
+    final info = check.info!;
+    final local = await Updater.localVersionCode();
+    if (!mounted) return;
+    await UpdatePrompt.show(
+      context,
+      info,
+      mandatory: info.isMandatoryFor(local),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

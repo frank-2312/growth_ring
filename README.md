@@ -66,6 +66,82 @@ flutter build apk --release --split-per-abi   # 按架构分包，单个约 35-4
 
 ---
 
+## 发布与更新
+
+不用应用商店，靠一份放在网上的清单自查有没有新版：启动 3 秒后拉 `update.json`，
+拿里面的 `version_code` 和本地 build number 比大小，大了就弹窗。整个过程纯 HTTP，
+不发通知、不常驻后台。
+
+清单地址是**编译时**写进包里的，换地址老用户不会自己知道——要换就趁早，或者换之前先发一版"多地址"的包。
+
+### 清单放在哪儿
+
+`lib/core/updater.dart` 里的默认顺序：
+
+1. `https://gitee.com/frank-2312/growth_ring/raw/main/update.json`
+2. `https://cdn.jsdelivr.net/gh/frank-2312/growth_ring@main/update.json`
+3. `https://raw.githubusercontent.com/frank-2312/growth_ring/main/update.json`
+
+Gitee 排第一：国内直连，不经过第三方。后两个只在 Gitee 不可用时兜底。
+
+> 仓库路径写在 `Updater._giteeRepo`（`账号/仓库名`）。注册好 Gitee 之后先把它改成实际账号，
+> 否则 Gitee 这一源会一直 404——客户端会静默跳到 jsDelivr 兜底，看起来"能用"，其实主路径没生效。
+
+构建时可以整体覆盖，多个地址用逗号分隔、按顺序试：
+
+```bash
+flutter build apk --release \
+  --dart-define=UPDATE_MANIFEST_URL=https://a.com/update.json,https://b.com/update.json
+```
+
+### 发一版新包
+
+1. 改 `pubspec.yaml`：`version: 1.0.0+2`，`+` 后面的数字**必须**比上一版大。
+2. 构建，并记下校验值：
+
+```bash
+flutter build apk --release
+sha256sum build/app/outputs/flutter-apk/app-release.apk     # macOS: shasum -a 256
+```
+
+3. 把 APK 传到 Gitee 仓库的「发行版 / Release」作为附件。单个附件上限 100 MB，
+   每个仓库的附件总量上限 1 GB——旧版本的包记得删，否则十几个版本就满了。
+4. 改仓库根目录的 `update.json`，`version_code` 必须等于上一步的 build number：
+
+```json
+{
+  "version": "1.0.1",
+  "version_code": 2,
+  "urls": [
+    "https://gitee.com/frank-2312/growth_ring/releases/download/v1.0.1/app-release.apk",
+    "https://备选地址/app-release.apk"
+  ],
+  "sha256": "第 2 步算出来的值",
+  "notes": "更新说明，换行会保留",
+  "min_version_code": 0,
+  "published_at": "2026-11-20"
+}
+```
+
+5. 推 Gitee，顺手同步一份到 GitHub（两边清单保持一致）。
+6. 自己先在设置页点「检查更新」验一遍，再对外说。
+
+### 几个坑
+
+- `urls` 写多个会按顺序试：前一个 404、超时或校验不过就自动换下一个；老的单个 `url` 仍然兼容。
+- `sha256` 留空表示不校验；填了就必须对得上，对不上会删掉包、换源重试，
+  最后报"所有下载地址都失败了"。走第三方镜像时这条是唯一的安全线。
+- `min_version_code` 大于 0 且用户版本低于它 → 强制更新，弹窗关不掉、没有「稍后」，慎用。
+- Gitee raw 实测用任意 UA 都能取（含 Dart 默认 UA），代码里仍带了浏览器 UA 和 `Accept`——
+  哪天它加了防盗链，老版本用户不会因为一个 header 集体收不到更新。
+- Gitee raw 只有 60 秒缓存（`Cache-Control: max-age=60`），改完一两分钟就能看到；
+  会拖很久的是 jsDelivr 对分支文件的缓存，所以客户端请求统一加了 `?t=时间戳` 绕开缓存。
+- 清单返回 200 但内容是 HTML（登录页、404 页）时，客户端会判定"不是合法 JSON"并换下一个源，
+  所以多源清单很有必要——一个源抽风不至于让所有人收不到更新。
+- 签过名的包换了 keystore 会装不上（"应用未安装"），发版前确认签名没变。
+
+---
+
 ## 配置模型
 
 进入 App →「今天」页右上角 → 设置 → 填三项即可。只支持 **OpenAI 兼容协议**，所以换供应商只是换一行地址：
@@ -225,7 +301,7 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 | 项目 | 状态 |
 | --- | --- |
 | `flutter analyze` | 0 issue |
-| 单元 + UI 渲染测试 | 40 个通过 |
+| 单元 + UI 渲染测试 | 63 个通过 |
 | PDF 导出（含中文嵌入） | 已验证 |
 | Android release APK | 已构建通过 |
 | 真机安装 | 未在真机验证 |
