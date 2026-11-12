@@ -16,6 +16,7 @@ import '../data/settings/settings_store.dart';
 import '../llm/llm_client.dart';
 import '../llm/persona_engine.dart';
 import '../llm/prompts.dart';
+import '../services/photo_store.dart';
 
 /// 全局状态。用 ChangeNotifier 而不是更重的方案：
 /// 这个应用的数据关系很简单，一个宿主对象足够，读起来也更直接。
@@ -62,6 +63,8 @@ class AppState extends ChangeNotifier {
     _notify();
     try {
       settings = await settingsStore.load();
+      // 配图目录要在界面起来之前备好，之后取图才是同步路径
+      await PhotoStore.init();
       await refreshAll();
       await Analytics.start(enabled: settings.analytics);
       _trackOpen();
@@ -144,12 +147,16 @@ class AppState extends ChangeNotifier {
   // --- 日记 ---------------------------------------------------------------
 
   /// 保存（或新建）某一天的日记，返回落库后的实体
+  ///
+  /// [photos] 传 null 表示"不要动已有的图"，只有明确给了新列表才覆盖——
+  /// 免得某个只改正文的调用顺手把配图清空。
   Future<DiaryEntry> saveEntry({
     required String dateKey,
     required String content,
     String? mood,
     int? energy,
     List<String> tags = const [],
+    List<String>? photos,
   }) async {
     final existing = entryForDate(dateKey);
     final now = DateTime.now();
@@ -169,6 +176,7 @@ class AppState extends ChangeNotifier {
       mood: mood,
       energy: energy,
       tags: tags,
+      photos: photos ?? existing?.photos ?? const [],
       updatedAt: now,
       // 内容变了就要重新读一遍，画像才能跟上
       analyzed: existing?.content == content ? (existing?.analyzed ?? false) : false,
@@ -192,7 +200,16 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteEntry(String id) async {
+    DiaryEntry? target;
+    for (final e in entries) {
+      if (e.id == id) {
+        target = e;
+        break;
+      }
+    }
     await diary.delete(id);
+    // 图跟着日记一起走，别在应用目录里留下没人认领的照片
+    if (target != null) await PhotoStore.removeDay(target.dateKey);
     await refreshAll();
   }
 
@@ -426,6 +443,7 @@ class AppState extends ChangeNotifier {
   Future<void> wipeEverything() async {
     // 清空必须彻底：日记没了但画像还在，会让用户以为数据没删干净
     await AppDatabase.instance.wipe();
+    await PhotoStore.wipeAll();
     await refreshAll();
   }
 }

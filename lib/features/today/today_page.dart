@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/fmt.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/common.dart';
+import '../../shared/widgets/entry_photos.dart';
 import '../../state/app_state.dart';
 import '../settings/settings_page.dart';
 
@@ -31,6 +32,7 @@ class _TodayPageState extends State<TodayPage> {
   DateTime? _savedAt;
   String? _mood;
   int? _energy;
+  List<String> _photos = const [];
   bool _echoLoading = false;
   bool _dirty = false;
 
@@ -44,6 +46,7 @@ class _TodayPageState extends State<TodayPage> {
       _lastSaved = entry.content;
       _mood = entry.mood;
       _energy = entry.energy;
+      _photos = entry.photos;
     }
     _controller.addListener(_onTextChanged);
   }
@@ -79,6 +82,7 @@ class _TodayPageState extends State<TodayPage> {
       content: text,
       mood: _mood,
       energy: _energy,
+      photos: _photos,
     );
     if (!mounted) return;
     setState(() {
@@ -86,6 +90,24 @@ class _TodayPageState extends State<TodayPage> {
       _savedAt = DateTime.now();
       _dirty = false;
     });
+  }
+
+  /// 图增删要立刻落库：只有图没有字的时候没有防抖那条路可走，
+  /// 切到别的页面再回来，图就没了。
+  Future<void> _onPhotosChanged(List<String> next) async {
+    setState(() => _photos = next);
+
+    if (next.isEmpty && _controller.text.trim().isEmpty) {
+      // 图的删光了、字也没有，这一天就当作没写过
+      final existing = _state.entryForDate(_dateKey);
+      if (existing != null) {
+        await _state.deleteEntry(existing.id);
+        if (mounted) setState(() => _savedAt = null);
+      }
+      return;
+    }
+
+    await _persist(_controller.text);
   }
 
   Future<void> _askEcho() async {
@@ -98,6 +120,7 @@ class _TodayPageState extends State<TodayPage> {
       content: text,
       mood: _mood,
       energy: _energy,
+      photos: _photos,
     );
     _lastSaved = text;
     _savedAt = DateTime.now();
@@ -142,6 +165,12 @@ class _TodayPageState extends State<TodayPage> {
             _header(state, now, soft),
             const SizedBox(height: 22),
             _editor(soft),
+            const SizedBox(height: 14),
+            PhotoStrip(
+              dateKey: _dateKey,
+              photos: _photos,
+              onChanged: _onPhotosChanged,
+            ),
             const SizedBox(height: 18),
             _moodRow(soft),
             const SizedBox(height: 14),

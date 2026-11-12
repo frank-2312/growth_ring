@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/fmt.dart';
 import '../../core/theme.dart';
 import '../../data/models/diary_entry.dart';
+import '../../services/photo_store.dart';
 import '../../shared/widgets/common.dart';
+import '../../shared/widgets/entry_photos.dart';
 import '../../state/app_state.dart';
 import '../export/export_page.dart';
 import 'entry_detail_page.dart';
@@ -166,10 +168,11 @@ class _EntryCard extends StatelessWidget {
                   const Spacer(),
                   if (entry.mood != null) TagPill(entry.mood!),
                   if (entry.mood != null) const SizedBox(width: 6),
-                  Text(
-                    '${Fmt.wordCount(entry.content)} 字',
-                    style: TextStyle(fontSize: 10, color: soft),
-                  ),
+                  if (Fmt.wordCount(entry.content) > 0)
+                    Text(
+                      '${Fmt.wordCount(entry.content)} 字',
+                      style: TextStyle(fontSize: 10, color: soft),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -184,6 +187,36 @@ class _EntryCard extends StatelessWidget {
                   color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
+              if (entry.hasPhotos) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    // 最多露三张，再多就只是数字——列表要的是"那天有图"这个信号
+                    for (var i = 0; i < entry.photos.length && i < 3; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: PhotoSquare(
+                          file: PhotoStore.fileOf(entry.dateKey, entry.photos[i]),
+                          size: 48,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PhotoViewerPage(
+                                dateKey: entry.dateKey,
+                                photos: entry.photos,
+                                initialIndex: i,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (entry.photos.length > 3)
+                      Text(
+                        '+${entry.photos.length - 3}',
+                        style: TextStyle(fontSize: 10.5, color: soft),
+                      ),
+                  ],
+                ),
+              ],
               if (entry.echo != null && entry.echo!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(

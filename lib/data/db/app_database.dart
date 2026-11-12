@@ -21,7 +21,7 @@ class AppDatabase {
     final path = p.join(dir, 'growth_ring.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE entries (
@@ -34,6 +34,7 @@ class AppDatabase {
             mood TEXT,
             energy INTEGER,
             tags TEXT,
+            photos TEXT,
             echo TEXT,
             analyzed INTEGER NOT NULL DEFAULT 0
           )
@@ -81,6 +82,13 @@ class AppDatabase {
             created_at INTEGER NOT NULL
           )
         ''');
+      },
+      // v1 → v2：日记开始支持配图。老行迁移后是 NULL，
+      // 读的时候当空列表处理，不做回填（免得动到用户已有数据）。
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE entries ADD COLUMN photos TEXT');
+        }
       },
     );
   }

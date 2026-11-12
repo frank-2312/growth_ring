@@ -7,6 +7,7 @@ import '../../core/fmt.dart';
 import '../../core/theme.dart';
 import '../../data/models/diary_entry.dart';
 import '../../shared/widgets/common.dart';
+import '../../shared/widgets/entry_photos.dart';
 import '../../state/app_state.dart';
 
 class EntryDetailPage extends StatefulWidget {
@@ -21,6 +22,7 @@ class EntryDetailPage extends StatefulWidget {
 class _EntryDetailPageState extends State<EntryDetailPage> {
   late final TextEditingController _controller;
   late DiaryEntry _entry;
+  late List<String> _photos;
   bool _editing = false;
   bool _dirty = false;
 
@@ -28,6 +30,7 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
   void initState() {
     super.initState();
     _entry = widget.entry;
+    _photos = widget.entry.photos;
     _controller = TextEditingController(text: _entry.content)
       ..addListener(() {
         final changed = _controller.text != _entry.content;
@@ -43,12 +46,13 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
 
   Future<void> _save() async {
     final state = context.read<AppState>();
-    final updated = _entry.copyWith(content: _controller.text);
+    final updated = _entry.copyWith(content: _controller.text, photos: _photos);
     await state.saveEntry(
       dateKey: _entry.dateKey,
       content: _controller.text,
       mood: _entry.mood,
       energy: _entry.energy,
+      photos: _photos,
     );
     if (!mounted) return;
     setState(() {
@@ -59,6 +63,21 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
     if (state.isConfigured) {
       unawaited(state.requestEcho(updated));
     }
+  }
+
+  /// 看图/配图都直接落库，不必等用户点「保存」——
+  /// 图片不像文字有防抖兜底，退出去就真没了。
+  Future<void> _onPhotosChanged(List<String> next) async {
+    setState(() => _photos = next);
+    final updated = await context.read<AppState>().saveEntry(
+          dateKey: _entry.dateKey,
+          content: _controller.text,
+          mood: _entry.mood,
+          energy: _entry.energy,
+          photos: next,
+        );
+    if (!mounted) return;
+    setState(() => _entry = updated);
   }
 
   Future<void> _delete() async {
@@ -125,11 +144,13 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                   style: TextStyle(fontSize: 12, color: soft)),
               const SizedBox(width: 10),
               if (_entry.mood != null) TagPill(_entry.mood!, highlight: true),
-              const SizedBox(width: 8),
-              Text(
-                '${Fmt.wordCount(_controller.text)} 字',
-                style: TextStyle(fontSize: 11, color: soft),
-              ),
+              if (Fmt.wordCount(_controller.text) > 0) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '${Fmt.wordCount(_controller.text)} 字',
+                  style: TextStyle(fontSize: 11, color: soft),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 18),
@@ -161,6 +182,15 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                 height: 1.95,
               ),
             ),
+          if (_editing || _photos.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            PhotoStrip(
+              dateKey: _entry.dateKey,
+              photos: _photos,
+              editable: _editing,
+              onChanged: _onPhotosChanged,
+            ),
+          ],
           if (_entry.echo != null && _entry.echo!.isNotEmpty) ...[
             const SizedBox(height: 26),
             SectionLabel('它说', trailing: Icon(Icons.auto_awesome,

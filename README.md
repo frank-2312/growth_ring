@@ -241,10 +241,12 @@ lib/
 │   ├── llm_client.dart           OpenAI 兼容客户端（流式/非流式/错误翻译）
 │   ├── prompts.dart              四条 prompt，产品的灵魂在这里
 │   └── persona_engine.dart       提取 + 合并的编排
-├── services/pdf_exporter.dart    PDF 排版
+├── services/
+│   ├── pdf_exporter.dart         PDF 排版
+│   └── photo_store.dart          配图落盘：photos/<dateKey>/<文件名>
 ├── state/app_state.dart          单一状态宿主（ChangeNotifier）
 ├── features/                     today / timeline / persona / chat / settings / export
-└── shared/widgets/               跨页面复用的小组件
+└── shared/widgets/               跨页面复用的小组件（含配图条与看图页）
 ```
 
 ### 数据流
@@ -263,7 +265,7 @@ ChatPage ──> AppState.sendMessage ──> 画像 + 近期读解 注入 syste
 
 ## 隐私
 
-- 日记只存在本机 SQLite，没有账号、没有同步。
+- 日记只存在本机 SQLite，配图存在应用私有目录（`photos/<日期>/`，不进系统相册、不上传），没有账号、没有同步。
 - 匿名统计（[Aptabase](https://aptabase.com)，开源）：只上报「打开、开始写、聊天、导出、更新画像」这类事件，字数与篇数只给区间；不含日记内容，不含 IMEI / OAID / 广告 ID，靠随机安装 ID 区分实例。设置页「隐私」里可一键关闭，关掉后不再上报。
 - 只有三种情况文字会离开设备：点「让它看一眼」/「读一读」/ 在知己里发消息。
 - 目标服务器是**你自己填的**，中间没有第三方。
@@ -301,7 +303,7 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 | 项目 | 状态 |
 | --- | --- |
 | `flutter analyze` | 0 issue |
-| 单元 + UI 渲染测试 | 63 个通过 |
+| 单元 + UI 渲染测试 | 73 个通过 |
 | PDF 导出（含中文嵌入） | 已验证 |
 | Android release APK | 已构建通过 |
 | 真机安装 | 未在真机验证 |
@@ -311,7 +313,8 @@ CI 由 `.github/workflows/ci.yml` 提供：静态分析 + 测试 + Android relea
 
 ## 还没做的
 
-- 图片 / 语音日记
+- 语音日记
+- PDF 导出里的配图（现在导出只有文字，图不进册子）
 - 多设备同步、备份导入
 - 按标签检索、全文搜索
 - 端上小模型（现在必须联网）

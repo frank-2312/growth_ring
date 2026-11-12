@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// 一天的日记。一日一篇：日期是逻辑主键，
 /// 这样「今天」这件事才成立，也让画像的时间轴不会因为同天多篇而挤在一起。
 class DiaryEntry {
@@ -11,6 +13,7 @@ class DiaryEntry {
     this.mood,
     this.energy,
     this.tags = const [],
+    this.photos = const [],
     this.echo,
     this.analyzed = false,
   });
@@ -34,6 +37,10 @@ class DiaryEntry {
 
   final List<String> tags;
 
+  /// 配图文件名（不含目录）。真实路径是 `photos/<dateKey>/<name>`，
+  /// 文件名而不是绝对路径存进库，换设备恢复备份时目录变了也不会失效。
+  final List<String> photos;
+
   /// 保存后模型给的一句回声，不是评价，只是照见
   final String? echo;
 
@@ -49,7 +56,10 @@ class DiaryEntry {
     );
   }
 
-  bool get isEmpty => content.trim().isEmpty;
+  /// 只有图没有字的日记也是一篇——用户拍下来了，就是记下了
+  bool get isEmpty => content.trim().isEmpty && photos.isEmpty;
+
+  bool get hasPhotos => photos.isNotEmpty;
 
   DiaryEntry copyWith({
     String? id,
@@ -61,6 +71,7 @@ class DiaryEntry {
     String? mood,
     int? energy,
     List<String>? tags,
+    List<String>? photos,
     String? echo,
     bool? analyzed,
   }) {
@@ -74,6 +85,7 @@ class DiaryEntry {
       mood: mood ?? this.mood,
       energy: energy ?? this.energy,
       tags: tags ?? this.tags,
+      photos: photos ?? this.photos,
       echo: echo ?? this.echo,
       analyzed: analyzed ?? this.analyzed,
     );
@@ -89,6 +101,7 @@ class DiaryEntry {
         'mood': mood,
         'energy': energy,
         'tags': tags.join('\u0001'),
+        'photos': jsonEncode(photos),
         'echo': echo,
         'analyzed': analyzed ? 1 : 0,
       };
@@ -107,8 +120,24 @@ class DiaryEntry {
       mood: m['mood'] as String?,
       energy: m['energy'] as int?,
       tags: tagsRaw.isEmpty ? const [] : tagsRaw.split('\u0001'),
+      photos: _decodePhotos(m['photos']),
       echo: m['echo'] as String?,
       analyzed: (m['analyzed'] as int?) == 1,
     );
+  }
+
+  /// v1 的库没有这一列（迁移后是 NULL），坏掉的 JSON 也不该让整篇日记打不开
+  static List<String> _decodePhotos(Object? raw) {
+    if (raw is! String || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return [
+        for (final e in decoded)
+          if (e is String && e.trim().isNotEmpty) e.trim(),
+      ];
+    } catch (_) {
+      return const [];
+    }
   }
 }

@@ -2,7 +2,7 @@ name: growth_ring
 description: "年轮 · 一本会越来越懂你的日记本"
 publish_to: 'none'
 
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: ^3.13.7
@@ -28,6 +28,9 @@ dependencies:
 
   # 校验下载下来的安装包（update.json 里填了 sha256 才用得上）
   crypto: ^3.0.8
+
+  # 给日记配图（只读相册，不申请相机与存储权限）
+  image_picker: ^1.1.2
 
   # 日期格式化
   intl: ^0.20.3
