@@ -1,11 +1,11 @@
 {
-  "version": "1.0.3",
-  "version_code": 4,
+  "version": "1.0.4",
+  "version_code": 5,
   "urls": [
-    "https://gitee.com/frank-2312/growth_ring/releases/download/v1.0.3/app-release.apk"
+    "https://gitee.com/frank-2312/growth_ring/releases/download/v1.0.4/growth_ring_v1.0.4.apk"
   ],
-  "notes": "更新检查改走国内线路，以前收不到新版本提示的，这一版开始能收到了。\n设置页最下面新增「检查更新」，随手就能看有没有新版。\n下载的安装包会核对校验值，下坏了或被动过会自动重下。",
+  "notes": "日记可以配图了：写完随手加几张，图只留在这台设备上。\n时间线的卡片会露出那天的前三张，点开能全屏看、能双指放大。\n删日记的时候图一起删掉，不会在手机里留下没人认领的照片。",
   "min_version_code": 0,
   "published_at": "2026-11-12",
-  "sha256": "c87fbf84a6f6342b28bee8f4b2840103f0381ef6df77ab5755a3fd23f8c9d412"
+  "sha256": "83809d9964f2ff8acd0c3227a1c7efabcf56c753cafb4a569b2f9d65810e627e"
 }
